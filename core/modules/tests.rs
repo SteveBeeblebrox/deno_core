@@ -106,31 +106,31 @@ if (import.meta.url != 'file:///d.js') throw Error();
 
   const CIRCULAR1_SRC: &str = r#"
 import "/circular2.js";
-Deno.core.print("circular1");
+system.core.print("circular1");
 "#;
 
   const CIRCULAR2_SRC: &str = r#"
 import "/circular3.js";
-Deno.core.print("circular2");
+system.core.print("circular2");
 "#;
 
   const CIRCULAR3_SRC: &str = r#"
 import "/circular1.js";
 import "/circular2.js";
-Deno.core.print("circular3");
+system.core.print("circular3");
 "#;
 
   const REDIRECT1_SRC: &str = r#"
 import "./redirect2.js";
-Deno.core.print("redirect1");
+system.core.print("redirect1");
 "#;
 
   const REDIRECT2_SRC: &str = r#"
 import "./redirect3.js";
-Deno.core.print("redirect2");
+system.core.print("redirect2");
 "#;
 
-  const REDIRECT3_SRC: &str = r#"Deno.core.print("redirect3");"#;
+  const REDIRECT3_SRC: &str = r#"system.core.print("redirect3");"#;
 
   const MAIN_SRC: &str = r#"
 // never_ready.js never loads.
@@ -420,7 +420,7 @@ fn test_mods() {
           import { b } from './b.js'
           if (b() != 'b') throw Error();
           let control = 42;
-          Deno.core.ops.op_test(control);
+          system.core.ops.op_test(control);
         "#,
         false,
         None,
@@ -484,11 +484,11 @@ fn test_lazy_loaded_esm() {
     .execute_script(
       "setup.js",
       r#"
-      Deno.core.print("1\n");
-      const module = Deno.core.createLazyLoader("ext:test_ext/lazy_loaded.js")();
+      system.core.print("1\n");
+      const module = system.core.createLazyLoader("ext:test_ext/lazy_loaded.js")();
       module.blah("hello\n");
-      Deno.core.print(`${JSON.stringify(module)}\n`);
-      const module1 = Deno.core.createLazyLoader("ext:test_ext/lazy_loaded.js")();
+      system.core.print(`${JSON.stringify(module)}\n`);
+      const module1 = system.core.createLazyLoader("ext:test_ext/lazy_loaded.js")();
       if (module !== module1) throw new Error("should return the same error");
       "#,
     )

@@ -27,6 +27,6 @@ test(function testCustomError() {
     throwCustomError("uh oh");
   } catch (e) {
     assertEquals(e.message, "uh oh");
-    assert(e instanceof Deno.core.BadResource);
+    assert(e instanceof system.core.BadResource);
   }
 });

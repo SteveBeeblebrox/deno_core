@@ -5,7 +5,7 @@ test(function testIssue20727() {
   // https://github.com/denoland/deno/issues/20727
   const ab = new ArrayBuffer(10);
   const transferList = [ab];
-  Deno.core.serialize(
+  system.core.serialize(
     { ab },
     { transferredArrayBuffers: transferList },
   );
@@ -23,7 +23,7 @@ test(function testIssue20727b() {
     data.array1.buffer,
     data.array2.buffer,
   ];
-  const serializedMultipleTransferredBuffers = Deno.core.serialize(
+  const serializedMultipleTransferredBuffers = system.core.serialize(
     { id: 2, data },
     { transferredArrayBuffers: transferList },
   );
@@ -33,7 +33,7 @@ test(function testIssue20727b() {
   assertEquals(typeof transferList[1], "number");
 
   // should not throw
-  Deno.core.deserialize(
+  system.core.deserialize(
     serializedMultipleTransferredBuffers,
     { transferredArrayBuffers: transferList },
   );
@@ -43,11 +43,11 @@ test(function testEmptyString() {
   const emptyString = "";
   const emptyStringSerialized = [255, 15, 34, 0];
   assertArrayEquals(
-    Deno.core.serialize(emptyString),
+    system.core.serialize(emptyString),
     emptyStringSerialized,
   );
   assertEquals(
-    Deno.core.deserialize(
+    system.core.deserialize(
       new Uint8Array(emptyStringSerialized),
     ),
     emptyString,
@@ -62,11 +62,11 @@ test(function testPrimitiveArray() {
     34, 1, 97, 48, 95, 36, 0, 4,
   ];
   assertArrayEquals(
-    Deno.core.serialize(primitiveValueArray),
+    system.core.serialize(primitiveValueArray),
     primitiveValueArraySerialized,
   );
   assertArrayEquals(
-    Deno.core.deserialize(
+    system.core.deserialize(
       new Uint8Array(primitiveValueArraySerialized),
     ),
     primitiveValueArray,
@@ -85,11 +85,11 @@ test(function testCircularObject() {
     97, 123, 3,
   ];
   assertArrayEquals(
-    Deno.core.serialize(circularObject),
+    system.core.serialize(circularObject),
     circularObjectSerialized,
   );
 
-  const deserializedCircularObject = Deno.core.deserialize(
+  const deserializedCircularObject = system.core.deserialize(
     new Uint8Array(circularObjectSerialized),
   );
   assertEquals(deserializedCircularObject.test, deserializedCircularObject);

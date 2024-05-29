@@ -52,11 +52,11 @@ test(async function testManyIntervals() {
 
 test(async function testTimerDepth() {
   const { promise, resolve } = Promise.withResolvers();
-  assertEquals(Deno.core.getTimerDepth(), 0);
+  assertEquals(system.core.getTimerDepth(), 0);
   setTimeout(() => {
-    assertEquals(Deno.core.getTimerDepth(), 1);
+    assertEquals(system.core.getTimerDepth(), 1);
     setTimeout(() => {
-      assertEquals(Deno.core.getTimerDepth(), 2);
+      assertEquals(system.core.getTimerDepth(), 2);
       resolve(null);
     }, 1);
   }, 1);

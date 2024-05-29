@@ -608,7 +608,7 @@ pub fn op_serialize(
     None => None,
   };
 
-  let key = v8::String::new(scope, "Deno.core.hostObject").unwrap();
+  let key = v8::String::new(scope, "system.core.hostObject").unwrap();
   let symbol = v8::Symbol::for_key(scope, key);
   let host_object_brand = Some(v8::Global::new(scope, symbol));
 

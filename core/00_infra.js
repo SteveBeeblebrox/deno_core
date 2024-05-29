@@ -35,7 +35,7 @@
   const promiseRing = ArrayPrototypeFill(new Array(RING_SIZE), NO_PROMISE);
   // TODO(bartlomieju): in the future use `v8::Private` so it's not visible
   // to users. Currently missing bindings.
-  const promiseIdSymbol = SymbolFor("Deno.core.internalPromiseId");
+  const promiseIdSymbol = SymbolFor("system.core.internalPromiseId");
 
   let isLeakTracingEnabled = false;
   let submitLeakTrace;
@@ -178,7 +178,7 @@
 
       const errorBuilder = errorMap[className];
       const err = errorBuilder ? errorBuilder(res.message) : new Error(
-        `Unregistered error class: "${className}"\n  ${res.message}\n  Classes of errors returned from ops should be registered via Deno.core.registerErrorClass().`,
+        `Unregistered error class: "${className}"\n  ${res.message}\n  Classes of errors returned from ops should be registered via system.core.registerErrorClass().`,
       );
       // Set .code if error was a known OS error, see error_codes.rs
       if (res.code) {
@@ -403,8 +403,8 @@
     return fn;
   }
 
-  // Extra Deno.core.* exports
-  const core = ObjectAssign(globalThis.Deno.core, {
+  // Extra system.core.* exports
+  const core = ObjectAssign(globalThis.system.core, {
     build,
     setBuildInfo,
     registerErrorBuilder,
@@ -424,5 +424,5 @@
 
   ObjectAssign(globalThis, { __infra: infra });
   ObjectAssign(globalThis.__bootstrap, { core });
-  ObjectAssign(globalThis.Deno, { core });
+  ObjectAssign(globalThis.system, { core });
 })(globalThis);

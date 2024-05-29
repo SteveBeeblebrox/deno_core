@@ -8,7 +8,7 @@ const {
   op_stats_diff,
   op_stats_dump,
   op_stats_delete,
-} = Deno
+} = system
   .core
   .ops;
 

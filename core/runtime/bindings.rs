@@ -200,7 +200,7 @@ where
 
 /// Create an object on the `globalThis` that looks like this:
 /// ```ignore
-/// globalThis.Deno = {
+/// globalThis.system = {
 ///   core: {
 ///     ops: {},
 ///   },
@@ -220,7 +220,7 @@ pub(crate) fn initialize_deno_core_namespace<'s>(
 
   let maybe_deno_obj_val = global.get(scope, deno_str.into());
 
-  // If `Deno.core` is already set up, let's exit early.
+  // If `system.core` is already set up, let's exit early.
   if let Some(deno_obj_val) = maybe_deno_obj_val {
     if !deno_obj_val.is_undefined() {
       return;
@@ -229,7 +229,7 @@ pub(crate) fn initialize_deno_core_namespace<'s>(
 
   let deno_obj = v8::Object::new(scope);
   let deno_core_key = CORE.v8_string(scope);
-  // Set up `Deno.core.ops` object
+  // Set up `system.core.ops` object
   let deno_core_ops_obj = v8::Object::new(scope);
   let deno_core_ops_key = OPS.v8_string(scope);
 
@@ -240,12 +240,12 @@ pub(crate) fn initialize_deno_core_namespace<'s>(
 
   // If we're initializing fresh context set up the console
   if init_mode == InitMode::New {
-    // Bind `call_console` to Deno.core.callConsole
+    // Bind `call_console` to system.core.callConsole
     let call_console_fn = v8::Function::new(scope, call_console).unwrap();
     let call_console_key = CALL_CONSOLE.v8_string(scope);
     deno_core_obj.set(scope, call_console_key.into(), call_console_fn.into());
 
-    // Bind v8 console object to Deno.core.console
+    // Bind v8 console object to system.core.console
     let extra_binding_obj = context.get_extras_binding_object(scope);
     let console_obj: v8::Local<v8::Object> = get(
       scope,
@@ -291,17 +291,17 @@ pub(crate) fn initialize_deno_core_ops_bindings<'s>(
   let global = context.global(scope);
 
   // Set up JavaScript bindings for the defined op - this will insert proper
-  // `v8::Function` into `Deno.core.ops` object. For async ops, there a bit
+  // `v8::Function` into `system.core.ops` object. For async ops, there a bit
   // more machinery involved, see comment below.
-  let deno_obj = get(scope, global, DENO, "Deno");
-  let deno_core_obj = get(scope, deno_obj, CORE, "Deno.core");
+  let deno_obj = get(scope, global, DENO, "system");
+  let deno_core_obj = get(scope, deno_obj, CORE, "system.core");
   let deno_core_ops_obj: v8::Local<v8::Object> =
-    get(scope, deno_core_obj, OPS, "Deno.core.ops");
+    get(scope, deno_core_obj, OPS, "system.core.ops");
   let set_up_async_stub_fn: v8::Local<v8::Function> = get(
     scope,
     deno_core_obj,
     SET_UP_ASYNC_STUB,
-    "Deno.core.setUpAsyncStub",
+    "system.core.setUpAsyncStub",
   );
 
   let undefined = v8::undefined(scope);
@@ -309,7 +309,7 @@ pub(crate) fn initialize_deno_core_ops_bindings<'s>(
     let mut op_fn = op_ctx_function(scope, op_ctx);
     let key = op_ctx.decl.name_fast.v8_string(scope);
 
-    // For async ops we need to set them up, by calling `Deno.core.setUpAsyncStub` -
+    // For async ops we need to set them up, by calling `system.core.setUpAsyncStub` -
     // this call will generate an optimized function that binds to the provided
     // op, while keeping track of promises and error remapping.
     if op_ctx.decl.is_async {
@@ -678,7 +678,7 @@ pub extern "C" fn promise_reject_callback(message: v8::PromiseRejectMessage) {
 ///   const callConsole = core.callConsole;
 ///
 ///   for (const key of Object.keys(consoleFromV8)) {
-///     if (consoleFromDeno.hasOwnProperty(key)) {
+///     if (consoleFromsystem.hasOwnProperty(key)) {
 ///       consoleFromDeno[key] = callConsole.bind(
 ///         consoleFromDeno,
 ///         consoleFromV8[key],
@@ -791,13 +791,13 @@ pub fn create_exports_for_ops_virtual_module<'s>(
 ) -> Vec<(FastStaticString, v8::Local<'s, v8::Value>)> {
   let mut exports = Vec::with_capacity(op_ctxs.len());
 
-  let deno_obj = get(scope, global, DENO, "Deno");
-  let deno_core_obj = get(scope, deno_obj, CORE, "Deno.core");
+  let deno_obj = get(scope, global, DENO, "system");
+  let deno_core_obj = get(scope, deno_obj, CORE, "system.core");
   let set_up_async_stub_fn: v8::Local<v8::Function> = get(
     scope,
     deno_core_obj,
     SET_UP_ASYNC_STUB,
-    "Deno.core.setUpAsyncStub",
+    "system.core.setUpAsyncStub",
   );
 
   let undefined = v8::undefined(scope);
@@ -806,7 +806,7 @@ pub fn create_exports_for_ops_virtual_module<'s>(
     let name = op_ctx.decl.name_fast.v8_string(scope);
     let mut op_fn = op_ctx_function(scope, op_ctx);
 
-    // For async ops we need to set them up, by calling `Deno.core.setUpAsyncStub` -
+    // For async ops we need to set them up, by calling `system.core.setUpAsyncStub` -
     // this call will generate an optimized function that binds to the provided
     // op, while keeping track of promises and error remapping.
     if op_ctx.decl.is_async {

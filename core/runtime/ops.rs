@@ -674,7 +674,7 @@ mod tests {
         "",
         format!(
           r"
-          const {{ op_test_fail, op_test_print_debug, {op} }} = Deno.core.ops;
+          const {{ op_test_fail, op_test_print_debug, {op} }} = system.core.ops;
           function assert(b) {{
             if (!b) {{
               op_test_fail();
@@ -725,7 +725,7 @@ mod tests {
         "",
         format!(
           r"
-          const {{ op_test_fail, op_test_print_debug, {op} }} = Deno.core.ops;
+          const {{ op_test_fail, op_test_print_debug, {op} }} = system.core.ops;
           function assert(b) {{
             if (!b) {{
               op_test_fail();

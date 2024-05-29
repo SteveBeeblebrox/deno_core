@@ -32,7 +32,7 @@ pub fn setup_op_state(op_state: &mut OpState, extensions: &mut [Extension]) {
 }
 
 // TODO(bartlomieju): `deno_core_ext` ops should be returned as a separate
-// vector - they need to be special cased and attached to `Deno.core.ops`,
+// vector - they need to be special cased and attached to `system.core.ops`,
 // but not added to "ext:core/ops" virtual module.
 /// Collects ops from extensions & applies middleware
 pub fn init_ops(

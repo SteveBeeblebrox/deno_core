@@ -30,7 +30,7 @@
     hasPromise,
     promiseIdSymbol,
     registerErrorClass,
-  } = window.Deno.core;
+  } = window.system.core;
   const {
     __setLeakTracingEnabled,
     __isLeakTracingEnabled,
@@ -307,8 +307,8 @@
   }
 
   // Some "extensions" rely on "BadResource" and "Interrupted" errors in the
-  // JS code (eg. "deno_net") so they are provided in "Deno.core" but later
-  // reexported on "Deno.errors"
+  // JS code (eg. "deno_net") so they are provided in "system.core" but later
+  // reexported on "system.errors"
   class BadResource extends Error {
     constructor(msg) {
       super(msg);
@@ -424,13 +424,13 @@
     return { fileName, lineNumber, columnNumber };
   }
 
-  const hostObjectBrand = SymbolFor("Deno.core.hostObject");
+  const hostObjectBrand = SymbolFor("system.core.hostObject");
 
   // A helper function that will bind our own console implementation
   // with default implementation of Console from V8. This will cause
   // console messages to be piped to inspector console.
   //
-  // We are using `Deno.core.callConsole` binding to preserve proper stack
+  // We are using `system.core.callConsole` binding to preserve proper stack
   // frames in inspector console. This has to be done because V8 considers
   // the last JS stack frame as gospel for the inspector. In our case we
   // specifically want the latest user stack frame to be the one that matters
@@ -439,7 +439,7 @@
   // Inspired by:
   // https://github.com/nodejs/node/blob/1317252dfe8824fd9cfee125d2aaa94004db2f3b/lib/internal/util/inspector.js#L39-L61
   function wrapConsole(customConsole, consoleFromV8) {
-    const callConsole = window.Deno.core.callConsole;
+    const callConsole = window.system.core.callConsole;
 
     const keys = ObjectKeys(consoleFromV8);
     for (let i = 0; i < keys.length; ++i) {
@@ -458,7 +458,7 @@
     }
   }
 
-  // Minimal console implementation, that uses `Deno.core.print` under the hood.
+  // Minimal console implementation, that uses `system.core.print` under the hood.
   // It's not fully fledged and is meant to make debugging slightly easier when working with
   // only `deno_core` crate.
   class CoreConsole {
@@ -599,9 +599,9 @@
     };
   }
 
-  // Extra Deno.core.* exports
-  const core = ObjectAssign(globalThis.Deno.core, {
-    internalRidSymbol: Symbol("Deno.internal.rid"),
+  // Extra system.core.* exports
+  const core = ObjectAssign(globalThis.system.core, {
+    internalRidSymbol: Symbol("system.internal.rid"),
     resources,
     metrics,
     eventLoopTick,
@@ -767,7 +767,7 @@
 
   const internals = {};
   ObjectAssign(globalThis.__bootstrap, { core, internals });
-  ObjectAssign(globalThis.Deno, { core });
+  ObjectAssign(globalThis.system, { core });
   ObjectFreeze(globalThis.__bootstrap.core);
 
   // Direct bindings on `globalThis`

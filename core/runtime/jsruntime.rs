@@ -845,7 +845,7 @@ impl JsRuntime {
     let scope = &mut context_scope;
     let context = v8::Local::new(scope, &main_context);
 
-    // ...followed by creation of `Deno.core` namespace, as well as internal
+    // ...followed by creation of `system.core` namespace, as well as internal
     // infrastructure to provide JavaScript bindings for ops...
     if init_mode == InitMode::New {
       bindings::initialize_deno_core_namespace(scope, context, init_mode);
@@ -947,7 +947,7 @@ impl JsRuntime {
       let module_map = realm.0.module_map();
 
       // TODO(bartlomieju): this is somewhat duplicated in `bindings::initialize_context`,
-      // but for migration period we need to have ops available in both `Deno.core.ops`
+      // but for migration period we need to have ops available in both `system.core.ops`
       // as well as have them available in "virtual ops module"
       // if !matches!(
       //   self.init_mode,
@@ -1089,7 +1089,7 @@ impl JsRuntime {
 
   /// Executes built-in scripts and ES modules - this code is required for
   /// ops system to work properly, as well as providing necessary bindings
-  /// on the `Deno.core` namespace.
+  /// on the `system.core` namespace.
   ///
   /// This is not done in [`bindings::initialize_primordials_and_infra`] because
   /// some of this code already relies on certain ops being available.
@@ -1237,21 +1237,21 @@ impl JsRuntime {
       // TODO(bartlomieju): these probably could be captured from main realm so we don't have to
       // look up them again?
       let deno_obj: v8::Local<v8::Object> =
-        bindings::get(scope, global, DENO, "Deno");
+        bindings::get(scope, global, DENO, "system");
       let core_obj: v8::Local<v8::Object> =
-        bindings::get(scope, deno_obj, CORE, "Deno.core");
+        bindings::get(scope, deno_obj, CORE, "system.core");
 
       let event_loop_tick_cb: v8::Local<v8::Function> = bindings::get(
         scope,
         core_obj,
         EVENT_LOOP_TICK,
-        "Deno.core.eventLoopTick",
+        "system.core.eventLoopTick",
       );
       let build_custom_error_cb: v8::Local<v8::Function> = bindings::get(
         scope,
         core_obj,
         BUILD_CUSTOM_ERROR,
-        "Deno.core.buildCustomError",
+        "system.core.buildCustomError",
       );
 
       let mut wasm_instantiate_fn = None;

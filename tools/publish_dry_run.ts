@@ -21,14 +21,14 @@ for (const crate of cratesInOrder) {
   await crate.increment("minor");
 }
 
-const originalManifest = Deno.readTextFileSync(DenoWorkspace.manifest);
+const originalManifest = system.readTextFileSync(DenoWorkspace.manifest);
 let manifest = originalManifest;
 for (const crate of cratesInOrder) {
   const re = new RegExp(`^(\\b${crate.name}\\b\\s=.*)}$`, "gm");
   manifest = manifest.replace(re, '$1, registry = "upstream" }');
 }
 
-Deno.writeTextFileSync(DenoWorkspace.manifest, manifest);
+system.writeTextFileSync(DenoWorkspace.manifest, manifest);
 
 for (const crate of cratesInOrder) {
   await crate.publish(

@@ -121,7 +121,7 @@ async fn test_wakers_for_async_ops() {
     .execute_script(
       "",
       ascii_str!(
-        "const { op_async_sleep } = Deno.core.ops; (async () => { await op_async_sleep(); })()"
+        "const { op_async_sleep } = system.core.ops; (async () => { await op_async_sleep(); })()"
       ),
     )
     .unwrap();
@@ -222,10 +222,10 @@ async fn test_resolve_promise(
 // happens.
 #[case(
   "call",
-  "() => { Deno.core.reportUnhandledException(new Error('fail')); return 1; }",
+  "() => { system.core.reportUnhandledException(new Error('fail')); return 1; }",
   Ok(Some(1))
 )]
-#[case("call", "() => { Deno.core.reportUnhandledException(new Error('fail')); willNotCall(); }", Err("Uncaught Error: fail"))]
+#[case("call", "() => { system.core.reportUnhandledException(new Error('fail')); willNotCall(); }", Err("Uncaught Error: fail"))]
 #[tokio::test]
 async fn test_resolve_value(
   #[case] runner: &'static str,
@@ -375,10 +375,10 @@ async fn wasm_streaming_op_invocation_in_import() {
   // Run an infinite loop in WebAssembly code, which should be terminated.
   runtime.execute_script("setup.js",
                                r#"
-                                Deno.core.setWasmStreamingCallback((source, rid) => {
-                                  Deno.core.ops.op_wasm_streaming_set_url(rid, "file:///foo.wasm");
-                                  Deno.core.ops.op_wasm_streaming_feed(rid, source);
-                                  Deno.core.close(rid);
+                                system.core.setWasmStreamingCallback((source, rid) => {
+                                  system.core.ops.op_wasm_streaming_set_url(rid, "file:///foo.wasm");
+                                  system.core.ops.op_wasm_streaming_feed(rid, source);
+                                  system.core.close(rid);
                                 });
                                "#).unwrap();
 
@@ -631,7 +631,7 @@ fn test_is_proxy() {
     (function () {
       const o = { a: 1, b: 2};
       const p = new Proxy(o, {});
-      return Deno.core.ops.op_is_proxy(p) && !Deno.core.ops.op_is_proxy(o) && !Deno.core.ops.op_is_proxy(42);
+      return system.core.ops.op_is_proxy(p) && !system.core.ops.op_is_proxy(o) && !system.core.ops.op_is_proxy(42);
     })()
   "#,
     )
@@ -660,18 +660,18 @@ async fn test_set_macrotask_callback_set_next_tick_callback() {
     .execute_script(
       "macrotasks_and_nextticks.js",
       r#"
-      const { op_async_sleep } = Deno.core.ops;
+      const { op_async_sleep } = system.core.ops;
       (async function () {
         const results = [];
-        Deno.core.setMacrotaskCallback(() => {
+        system.core.setMacrotaskCallback(() => {
           results.push("macrotask");
           return true;
         });
-        Deno.core.setNextTickCallback(() => {
+        system.core.setNextTickCallback(() => {
           results.push("nextTick");
-          Deno.core.setHasTickScheduled(false);
+          system.core.setHasTickScheduled(false);
         });
-        Deno.core.setHasTickScheduled(true);
+        system.core.setHasTickScheduled(true);
         await op_async_sleep();
         if (results[0] != "nextTick") {
           throw new Error(`expected nextTick, got: ${results[0]}`);
@@ -715,12 +715,12 @@ fn test_has_tick_scheduled() {
     .execute_script(
       "has_tick_scheduled.js",
       r#"
-        Deno.core.setMacrotaskCallback(() => {
-          Deno.core.ops.op_macrotask();
+        system.core.setMacrotaskCallback(() => {
+          system.core.ops.op_macrotask();
           return true; // We're done.
         });
-        Deno.core.setNextTickCallback(() => Deno.core.ops.op_next_tick());
-        Deno.core.setHasTickScheduled(true);
+        system.core.setNextTickCallback(() => system.core.ops.op_next_tick());
+        system.core.setHasTickScheduled(true);
         "#,
     )
     .unwrap();
@@ -788,7 +788,7 @@ fn terminate_during_module_eval() {
 
   let module_id = futures::executor::block_on(
     runtime
-      .load_main_es_module_from_code(&specifier, "Deno.core.print('hello\\n')"),
+      .load_main_es_module_from_code(&specifier, "system.core.print('hello\\n')"),
   )
   .unwrap();
 
@@ -824,14 +824,14 @@ async fn test_promise_rejection_handler_generic(
     function throwError() {
       throw new Error("boom");
     }
-    const { op_void_async, op_void_async_deferred } = Deno.core.ops;
+    const { op_void_async, op_void_async_deferred } = system.core.ops;
     if (test != "no_handler") {
-      Deno.core.setUnhandledPromiseRejectionHandler((promise, rejection) => {
+      system.core.setUnhandledPromiseRejectionHandler((promise, rejection) => {
         if (test.startsWith("exception_")) {
           try {
             throwError();
           } catch (e) {
-            Deno.core.reportUnhandledException(e);
+            system.core.reportUnhandledException(e);
           }
         }
         return test.endsWith("_true");
@@ -839,14 +839,14 @@ async fn test_promise_rejection_handler_generic(
     }
     if (test != "no_reject") {
       if (test.startsWith("async_op_eager_")) {
-        op_void_async().then(() => { Deno.core.ops.op_breakpoint(); throw new Error("fail") });
+        op_void_async().then(() => { system.core.ops.op_breakpoint(); throw new Error("fail") });
       } else if (test.startsWith("async_op_deferred_")) {
-        op_void_async_deferred().then(() => { Deno.core.ops.op_breakpoint(); throw new Error("fail") });
+        op_void_async_deferred().then(() => { system.core.ops.op_breakpoint(); throw new Error("fail") });
       } else if (test.startsWith("throw_")) {
-        Deno.core.ops.op_breakpoint();
+        system.core.ops.op_breakpoint();
         throw new Error("fail");
       } else {
-        Deno.core.ops.op_breakpoint();
+        system.core.ops.op_breakpoint();
         Promise.reject(new Error("fail"));
       }
     }
@@ -974,7 +974,7 @@ async fn test_dynamic_import_module_error_stack() {
     ),
     (
       Url::parse("file:///import.js").unwrap(),
-      "const { op_async_error } = Deno.core.ops; await op_async_error();",
+      "const { op_async_error } = system.core.ops; await op_async_error();",
     ),
   ]);
   let mut runtime = JsRuntime::new(RuntimeOptions {
@@ -1024,7 +1024,7 @@ async fn tla_in_esm_extensions_panics() {
       "mod:test" = { source = "import 'mod:tla';" },
       "mod:tla" = {
         source = r#"
-          const { op_wait } = Deno.core.ops;
+          const { op_wait } = system.core.ops;
           await op_wait(0);
           export const TEST = "foo";
       "#
@@ -1199,7 +1199,7 @@ async fn terminate_execution_run_event_loop_js() {
   });
 
   // Start async task
-  runtime.execute_script("sleep.js", "(async () => { while (true) { await Deno.core.ops.op_async_sleep(); } })()").unwrap();
+  runtime.execute_script("sleep.js", "(async () => { while (true) { await system.core.ops.op_async_sleep(); } })()").unwrap();
 
   // Terminate execution after 1 second.
   let v8_isolate_handle = runtime.v8_isolate().thread_safe_handle();
@@ -1336,7 +1336,7 @@ fn eval_context_with_code_cache() {
     runtime
       .execute_script(
         "",
-        ascii_str!("Deno.core.evalContext('const i = 10;', 'file:///foo.js');"),
+        ascii_str!("system.core.evalContext('const i = 10;', 'file:///foo.js');"),
       )
       .unwrap();
 
@@ -1376,7 +1376,7 @@ fn eval_context_with_code_cache() {
     runtime
       .execute_script(
         "",
-        ascii_str!("Deno.core.evalContext('const i = 10;', 'file:///foo.js');"),
+        ascii_str!("system.core.evalContext('const i = 10;', 'file:///foo.js');"),
       )
       .unwrap();
 

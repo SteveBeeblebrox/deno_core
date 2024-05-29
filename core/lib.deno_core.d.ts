@@ -5,7 +5,7 @@
 /// <reference no-default-lib="true" />
 /// <reference lib="esnext" />
 
-declare namespace Deno {
+declare namespace system {
   namespace core {
     /** Mark following promise as "ref", ie. event loop won't exit
      * until all "ref" promises are resolved. All async ops are "ref" by default. */
@@ -34,7 +34,7 @@ declare namespace Deno {
 
     /**
      * Returns a map containing traces for all ongoing async ops. The key is the promise id.
-     * Tracing only occurs when `Deno.core.setLeakTracingEnabled()` was previously
+     * Tracing only occurs when `system.core.setLeakTracingEnabled()` was previously
      * enabled.
      */
     function getAllLeakTraces(): Map<number, string>;
@@ -123,7 +123,7 @@ declare namespace Deno {
      *     and an exception. Invalidates the resource.
      *   - `op_wasm_streaming_set_url`. Sets a source URL for the wasm module.
      *     Takes the rid and a string.
-     *   - To indicate the end of the resource, use `Deno.core.close()` with the
+     *   - To indicate the end of the resource, use `system.core.close()` with the
      *     rid.
      */
     function setWasmStreamingCallback(

@@ -25,7 +25,7 @@ function __TEMPLATE__(__ARGS_PARAM__) {
 }
 
 const infraJsPath = new URL("00_infra.js", import.meta.url);
-const infraJs = Deno.readTextFileSync(infraJsPath);
+const infraJs = system.readTextFileSync(infraJsPath);
 
 const infraPristine = infraJs.replaceAll(
   /\/\* BEGIN TEMPLATE ([^ ]+) \*\/.*?\/\* END TEMPLATE \*\//smg,
@@ -66,9 +66,9 @@ const infraOutput = infraPristine
     asyncStubCases.replaceAll(/^/gm, asyncStubIndent),
   );
 
-if (Deno.args[0] === "--check") {
+if (system.args[0] === "--check") {
   if (infraOutput !== infraJs) {
-    Deno.writeTextFileSync("/tmp/mismatch.txt", infraOutput);
+    system.writeTextFileSync("/tmp/mismatch.txt", infraOutput);
     throw new Error(
       "Mismatch between pristine and updated source (wrote mismatch to /tmp/mismatch.txt)",
     );
@@ -76,5 +76,5 @@ if (Deno.args[0] === "--check") {
     console.log("✅ Templated sections would not change");
   }
 } else {
-  Deno.writeTextFileSync(infraJsPath, infraOutput);
+  system.writeTextFileSync(infraJsPath, infraOutput);
 }

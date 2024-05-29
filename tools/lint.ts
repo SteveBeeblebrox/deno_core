@@ -2,4 +2,4 @@
 // Copyright 2018-2024 the Deno authors. All rights reserved. MIT license.
 import { main } from "./check.ts";
 
-await main("lint", Deno.args[0]);
+await main("lint", system.args[0]);

@@ -23,7 +23,7 @@ interface SharedArrayBuffer {
   transfer(size: number);
 }
 
-declare namespace Deno {
+declare namespace system {
   export function refTimer(id);
   export function unrefTimer(id);
 }

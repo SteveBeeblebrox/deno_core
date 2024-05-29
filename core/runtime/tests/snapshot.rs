@@ -61,7 +61,7 @@ fn will_snapshot2() {
       .execute_script("check_b.js", "if (b != 5) throw Error('x')")
       .unwrap();
     runtime
-      .execute_script("check2.js", "if (!Deno.core) throw Error('x')")
+      .execute_script("check2.js", "if (!system.core) throw Error('x')")
       .unwrap();
   }
 }
@@ -74,13 +74,13 @@ fn test_snapshot_callbacks() {
       .execute_script(
         "a.js",
         r#"
-        Deno.core.setMacrotaskCallback(() => {
+        system.core.setMacrotaskCallback(() => {
           return true;
         });
-        Deno.core.ops.op_set_format_exception_callback(()=> {
+        system.core.ops.op_set_format_exception_callback(()=> {
           return null;
         })
-        Deno.core.setUnhandledPromiseRejectionHandler(() => {
+        system.core.setUnhandledPromiseRejectionHandler(() => {
           return false;
         });
         a = 1 + 2;
@@ -308,7 +308,7 @@ fn es_snapshot() {
 
   let source_code = r#"(async () => {
     const mod = await import("file:///400.js");
-    return mod.f400() + " " + Deno.core.ops.op_test();
+    return mod.f400() + " " + system.core.ops.op_test();
   })();"#;
   let val = runtime3.execute_script(".", source_code).unwrap();
   #[allow(deprecated)]
@@ -413,7 +413,7 @@ pub fn snapshot_with_additional_extensions() {
     esm_entry_point = "ext:module_snapshot/before.js",
     esm = ["ext:module_snapshot/before.js" =
       // If this throws, we accidentally tried to evaluate this module twice
-      { source = "if (globalThis.before) { throw 'twice?' } globalThis.before = () => { globalThis.BEFORE = Deno.core.ops.op_before(); };" },]
+      { source = "if (globalThis.before) { throw 'twice?' } globalThis.before = () => { globalThis.BEFORE = system.core.ops.op_before(); };" },]
   );
   deno_core::extension!(
     after_snapshot,
@@ -421,7 +421,7 @@ pub fn snapshot_with_additional_extensions() {
     esm_entry_point = "ext:module_snapshot/after.js",
     esm = ["ext:module_snapshot/after.js" = {
       source =
-        "globalThis.before(); globalThis.AFTER = Deno.core.ops.op_after();"
+        "globalThis.before(); globalThis.AFTER = system.core.ops.op_after();"
     },]
   );
 

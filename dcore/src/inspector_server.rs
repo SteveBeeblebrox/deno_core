@@ -251,7 +251,7 @@ async fn server(
       );
       eprintln!("Visit chrome://inspect to connect to the debugger.");
       if info.wait_for_session {
-        eprintln!("Deno is waiting for debugger to connect.");
+        eprintln!("system is waiting for debugger to connect.");
       }
       if inspector_map.borrow_mut().insert(info.uuid, info).is_some() {
         panic!("Inspector UUID already in map");

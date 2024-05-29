@@ -16,7 +16,7 @@ globalThis.setInterval = timers.setInterval;
 globalThis.clearTimeout = timers.clearTimeout;
 globalThis.clearInterval = timers.clearInterval;
 globalThis.Worker = worker.Worker;
-Deno.core.addMainModuleHandler((module) => {
+system.core.addMainModuleHandler((module) => {
   if (onMainModuleCb) onMainModuleCb(module);
 });
 let onMainModuleCb = () => {};
@@ -28,25 +28,25 @@ Reflect.defineProperty(globalThis, "onmainmodule", {
 Reflect.defineProperty(globalThis, "onerror", {
   set: (cb) => {
     if (cb) {
-      Deno.core.setReportExceptionCallback((error) => {
+      system.core.setReportExceptionCallback((error) => {
         let defaultPrevented = false;
         cb({
           error,
           preventDefault: () => defaultPrevented = true,
         });
         if (!defaultPrevented) {
-          Deno.core.reportUnhandledException(error);
+          system.core.reportUnhandledException(error);
         }
       });
     } else {
-      Deno.core.setReportExceptionCallback(null);
+      system.core.setReportExceptionCallback(null);
     }
   },
 });
 Reflect.defineProperty(globalThis, "onunhandledrejection", {
   set: (cb) => {
     if (cb) {
-      Deno.core.setUnhandledPromiseRejectionHandler((promise, reason) => {
+      system.core.setUnhandledPromiseRejectionHandler((promise, reason) => {
         let defaultPrevented = false;
         cb({
           promise,
@@ -56,23 +56,23 @@ Reflect.defineProperty(globalThis, "onunhandledrejection", {
         return defaultPrevented;
       });
     } else {
-      Deno.core.setUnhandledPromiseRejectionHandler(null);
+      system.core.setUnhandledPromiseRejectionHandler(null);
     }
   },
 });
 Reflect.defineProperty(globalThis, "onrejectionhandled", {
   set: (cb) => {
     if (cb) {
-      Deno.core.setHandledPromiseRejectionHandler((promise, reason) => {
+      system.core.setHandledPromiseRejectionHandler((promise, reason) => {
         cb({
           promise,
           reason,
         });
       });
     } else {
-      Deno.core.setHandledPromiseRejectionHandler(null);
+      system.core.setHandledPromiseRejectionHandler(null);
     }
   },
 });
-Deno.unrefTimer = timers.unrefTimer;
-Deno.refTimer = timers.refTimer;
+system.unrefTimer = timers.unrefTimer;
+system.refTimer = timers.refTimer;

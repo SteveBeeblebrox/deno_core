@@ -8,7 +8,7 @@ macro_rules! v8_static_strings {
 }
 
 v8_static_strings!(
-  DENO = "Deno",
+  DENO = "system",
   CORE = "core",
   OPS = "ops",
   URL = "url",

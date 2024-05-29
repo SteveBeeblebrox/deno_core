@@ -62,7 +62,7 @@ and module-style APIs.
 In the former style of API, the modules can add APIs to `globalThis` directly:
 
 ```ts
-globalThis.Deno.myAPI = function myAPI() {
+globalThis.system.myAPI = function myAPI() {
   op_do_something();
 };
 ```
@@ -93,11 +93,11 @@ needed.
 A `Resource` is instantiated inside of an `op`, and the integer handle is
 returned to the calling code.
 
-The `close` and `tryClose` operations are available as a `Deno.core` JS API, and
+The `close` and `tryClose` operations are available as a `system.core` JS API, and
 both take the integer ID of the resource.
 
 A `Resource` may or may not implement stream read and write operations. These
-are exposed via `read*` and `write*` APIs on `Deno.core`, and the APIs are
+are exposed via `read*` and `write*` APIs on `system.core`, and the APIs are
 mapped to the `Resource`'s read and write trait methods.
 
 ## Error and promise rejection handling
@@ -107,11 +107,11 @@ uncaught errors: `setReportExceptionCallback`,
 `setUnhandledPromiseRejectionHandler`.
 
 When an ES Module throws an exception at the top level, or code in a callback or
-promise continuation throws an exception that is not handled, `Deno.core`
+promise continuation throws an exception that is not handled, `system.core`
 detects this as an unhandled exception and routes it to the
 `setReportExceptionCallback` or `setUnhandledPromiseRejectionHandler` callbacks.
 
-`Deno.core` automatically handles errors and promise rejects that bubble out of
+`system.core` automatically handles errors and promise rejects that bubble out of
 user code and into the top-level module and rejects the promise for the module
 itself.
 

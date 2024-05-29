@@ -35,7 +35,7 @@ const buffer = new Uint8Array(1024);
 const textDecoder = new TextDecoder();
 
 async function readFirstPartOfFile(filePath) {
-  const file = await Deno.open(filePath, { read: true });
+  const file = await system.open(filePath, { read: true });
   try {
     const byteCount = await file.read(buffer);
     return textDecoder.decode(buffer.slice(0, byteCount ?? 0));
@@ -45,7 +45,7 @@ async function readFirstPartOfFile(filePath) {
 }
 
 async function fixFile(commentPrefix, file) {
-  let fileText = await Deno.readTextFile(file);
+  let fileText = await system.readTextFile(file);
   if (fileText.includes("\r\n")) {
     throw new Error("Cowardly refusing to fix CRLF line endings in " + file);
   }
@@ -87,7 +87,7 @@ async function fixFile(commentPrefix, file) {
 
   fileText = newContents.join("\n");
 
-  await Deno.writeTextFile(file, fileText);
+  await system.writeTextFile(file, fileText);
   return await checkFile(commentPrefix, file);
 }
 
@@ -148,7 +148,7 @@ export async function checkCopyright(fix = false) {
   }
 
   // check the main license file
-  const licenseText = Deno.readTextFileSync(ROOT_PATH + "/LICENSE.md");
+  const licenseText = system.readTextFileSync(ROOT_PATH + "/LICENSE.md");
   if (
     !licenseText.includes(`Copyright 2018-${copyrightYear} the Deno authors`)
   ) {
@@ -166,5 +166,5 @@ export async function checkCopyright(fix = false) {
 }
 
 if (import.meta.main) {
-  await checkCopyright(Deno.args[0] == "--fix");
+  await checkCopyright(system.args[0] == "--fix");
 }

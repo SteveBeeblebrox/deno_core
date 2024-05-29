@@ -1,8 +1,8 @@
 // Copyright 2018-2024 the Deno authors. All rights reserved. MIT license.
-export const ROOT_PATH = Deno.realPathSync(new URL("..", import.meta.url));
+export const ROOT_PATH = system.realPathSync(new URL("..", import.meta.url));
 
 async function getFilesFromGit(baseDir, args) {
-  const { success, stdout } = await new Deno.Command("git", {
+  const { success, stdout } = await new system.Command("git", {
     stderr: "inherit",
     args,
   }).output();
@@ -13,7 +13,7 @@ async function getFilesFromGit(baseDir, args) {
 
   const files = output.split("\0").filter((line) => line.length > 0).map(
     (filePath) => {
-      return Deno.realPathSync(baseDir + "/" + filePath);
+      return system.realPathSync(baseDir + "/" + filePath);
     },
   );
 
@@ -21,7 +21,7 @@ async function getFilesFromGit(baseDir, args) {
 }
 
 function gitLsFiles(baseDir, patterns) {
-  baseDir = Deno.realPathSync(baseDir);
+  baseDir = system.realPathSync(baseDir);
   const cmd = [
     "-C",
     baseDir,
@@ -39,7 +39,7 @@ function gitLsFiles(baseDir, patterns) {
 
 /** List all files staged for commit */
 function gitStaged(baseDir, patterns) {
-  baseDir = Deno.realPathSync(baseDir);
+  baseDir = system.realPathSync(baseDir);
   const cmd = [
     "-C",
     baseDir,
@@ -67,7 +67,7 @@ function gitStaged(baseDir, patterns) {
  * only staged sources will be returned.
  */
 export async function getSources(baseDir, patterns) {
-  const stagedOnly = Deno.args.includes("--staged");
+  const stagedOnly = system.args.includes("--staged");
 
   if (stagedOnly) {
     return await gitStaged(baseDir, patterns);

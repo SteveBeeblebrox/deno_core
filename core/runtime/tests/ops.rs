@@ -52,7 +52,7 @@ async fn test_async_opstate_borrow() {
   runtime
     .execute_script(
       "op_async_borrow.js",
-      "const { op_async_borrow } = Deno.core.ops; op_async_borrow();",
+      "const { op_async_borrow } = system.core.ops; op_async_borrow();",
     )
     .unwrap();
   runtime.run_event_loop(Default::default()).await.unwrap();
@@ -84,7 +84,7 @@ async fn test_sync_op_serialize_object_with_numbers_as_keys() {
     .execute_script(
       "op_sync_serialize_object_with_numbers_as_keys.js",
       r#"
-Deno.core.ops.op_sync_serialize_object_with_numbers_as_keys({
+system.core.ops.op_sync_serialize_object_with_numbers_as_keys({
 lines: {
   100: {
     unit: "m"
@@ -126,7 +126,7 @@ async fn test_async_op_serialize_object_with_numbers_as_keys() {
     .execute_script(
       "op_async_serialize_object_with_numbers_as_keys.js",
       r#"
-        const { op_async_serialize_object_with_numbers_as_keys } = Deno.core.ops;
+        const { op_async_serialize_object_with_numbers_as_keys } = system.core.ops;
         op_async_serialize_object_with_numbers_as_keys({
           lines: {
             100: {
@@ -159,7 +159,7 @@ fn test_op_return_serde_v8_error() {
   assert!(runtime
     .execute_script(
       "test_op_return_serde_v8_error.js",
-      "Deno.core.ops.op_err()"
+      "system.core.ops.op_err()"
     )
     .is_err());
 }
@@ -183,7 +183,7 @@ fn test_op_high_arity() {
     ..Default::default()
   });
   let r = runtime
-    .execute_script("test.js", "Deno.core.ops.op_add_4(1, 2, 3, 4)")
+    .execute_script("test.js", "system.core.ops.op_add_4(1, 2, 3, 4)")
     .unwrap();
   let scope = &mut runtime.handle_scope();
   assert_eq!(r.open(scope).integer_value(scope), Some(10));
@@ -208,7 +208,7 @@ fn test_op_disabled() {
   });
   // Disabled op should be replaced with a function that throws.
   let err = runtime
-    .execute_script("test.js", "Deno.core.ops.op_foo()")
+    .execute_script("test.js", "system.core.ops.op_foo()")
     .unwrap_err();
   assert!(err.to_string().contains("op is disabled"));
 }
@@ -245,14 +245,14 @@ fn test_op_detached_buffer() {
       if (!(a1.length > 0 && a1b.length > 0)) {
         throw new Error("a1 & a1b should have a length");
       }
-      let sum = Deno.core.ops.op_sum_take(a1b);
+      let sum = system.core.ops.op_sum_take(a1b);
       if (sum !== 6) {
         throw new Error(`Bad sum: ${sum}`);
       }
       if (a1.length > 0 || a1b.length > 0) {
         throw new Error("expecting a1 & a1b to be detached");
       }
-      const a3 = Deno.core.ops.op_boomerang(a2b);
+      const a3 = system.core.ops.op_boomerang(a2b);
       if (a3.byteLength != 3) {
         throw new Error(`Expected a3.byteLength === 3, got ${a3.byteLength}`);
       }
@@ -275,7 +275,7 @@ fn test_op_detached_buffer() {
       w32[0] = 1; w32[1] = 2; w32[2] = 3;
       const assertWasmThrow = (() => {
         try {
-          let sum = Deno.core.ops.op_sum_take(w32.subarray(0, 2));
+          let sum = system.core.ops.op_sum_take(w32.subarray(0, 2));
           return false;
         } catch(e) {
           return e.message.includes('expected');
@@ -337,15 +337,15 @@ fn ops_in_js_have_proper_names() {
   });
 
   let src = r#"
-  if (Deno.core.ops.op_test_sync.name !== "op_test_sync") {
+  if (system.core.ops.op_test_sync.name !== "op_test_sync") {
     throw new Error();
   }
 
-  if (Deno.core.ops.op_test_async.name !== "op_test_async") {
+  if (system.core.ops.op_test_async.name !== "op_test_async") {
     throw new Error();
   }
 
-  const { op_test_async } = Deno.core.ops;
+  const { op_test_async } = system.core.ops;
   if (op_test_async.name !== "op_test_async") {
     throw new Error();
   }
@@ -360,7 +360,7 @@ async fn test_ref_unref_ops() {
     .execute_script(
       "filename.js",
       r#"
-      const { op_test } = Deno.core.ops;
+      const { op_test } = system.core.ops;
       var p1 = op_test(42);
       var p2 = op_test(42);
       "#,
@@ -375,8 +375,8 @@ async fn test_ref_unref_ops() {
     .execute_script(
       "filename.js",
       r#"
-      Deno.core.unrefOpPromise(p1);
-      Deno.core.unrefOpPromise(p2);
+      system.core.unrefOpPromise(p1);
+      system.core.unrefOpPromise(p2);
       "#,
     )
     .unwrap();
@@ -389,8 +389,8 @@ async fn test_ref_unref_ops() {
     .execute_script(
       "filename.js",
       r#"
-      Deno.core.refOpPromise(p1);
-      Deno.core.refOpPromise(p2);
+      system.core.refOpPromise(p1);
+      system.core.refOpPromise(p2);
       "#,
     )
     .unwrap();
@@ -409,7 +409,7 @@ fn test_dispatch() {
       "filename.js",
       r#"
       let control = 42;
-      const { op_test } = Deno.core.ops;
+      const { op_test } = system.core.ops;
       op_test(control);
       async function main() {
         op_test(control);
@@ -428,7 +428,7 @@ fn test_dispatch_no_zero_copy_buf() {
     .execute_script(
       "filename.js",
       r#"
-      const { op_test } = Deno.core.ops;
+      const { op_test } = system.core.ops;
       op_test(0);
       "#,
     )
@@ -443,7 +443,7 @@ fn test_dispatch_stack_zero_copy_bufs() {
     .execute_script(
       "filename.js",
       r#"
-      const { op_test } = Deno.core.ops;
+      const { op_test } = system.core.ops;
       let zero_copy_a = new Uint8Array([0]);
       op_test(0, zero_copy_a);
       "#,
@@ -459,7 +459,7 @@ fn test_call_site() {
     .execute_script(
       "file:///filename.js",
       r#"
-      const cs = Deno.core.currentUserCallSite();
+      const cs = system.core.currentUserCallSite();
       assert(cs.fileName === "file:///filename.js");
       assert(cs.lineNumber === 2);
       assert(cs.columnNumber === 28);
@@ -484,7 +484,7 @@ pub async fn test_top_level_await() {
     (
       Url::parse("http://x/main.js").unwrap(),
       r#"
-const { op_sleep_forever } = Deno.core.ops;
+const { op_sleep_forever } = system.core.ops;
 (async () => await op_sleep_forever())();
 await import('./mod.js');
     "#,
@@ -492,7 +492,7 @@ await import('./mod.js');
     (
       Url::parse("http://x/mod.js").unwrap(),
       r#"
-const { op_void_async_deferred } = Deno.core.ops;
+const { op_void_async_deferred } = system.core.ops;
 await op_void_async_deferred();
     "#,
     ),
@@ -633,7 +633,7 @@ pub async fn test_op_metrics() {
   .execute_script(
     "filename.js",
     r#"
-    const { op_sync, op_sync_error, op_async, op_async_error, op_async_yield, op_async_yield_error, op_async_deferred, op_async_lazy, op_async_impl_future_error, op_sync_arg_error, op_async_arg_error } = Deno.core.ops;
+    const { op_sync, op_sync_error, op_async, op_async_error, op_async_yield, op_async_yield_error, op_async_deferred, op_async_lazy, op_async_impl_future_error, op_sync_arg_error, op_async_arg_error } = system.core.ops;
     async function go() {
       op_sync();
       try { op_sync_error(); } catch {}
@@ -705,7 +705,7 @@ pub async fn test_op_metrics_summary_tracker() {
   .execute_script(
     "filename.js",
     r#"
-    const { op_sync, op_sync_error, op_async, op_async_error, op_async_yield, op_async_yield_error, op_async_deferred, op_async_lazy, op_async_impl_future_error, op_sync_arg_error, op_async_arg_error } = Deno.core.ops;
+    const { op_sync, op_sync_error, op_async, op_async_error, op_async_yield, op_async_yield_error, op_async_deferred, op_async_lazy, op_async_impl_future_error, op_sync_arg_error, op_async_arg_error } = system.core.ops;
     async function go() {
       op_sync();
       try { op_sync_error(); } catch {}

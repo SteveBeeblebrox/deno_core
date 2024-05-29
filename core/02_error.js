@@ -2,7 +2,7 @@
 "use strict";
 
 ((window) => {
-  const core = Deno.core;
+  const core = system.core;
   const {
     op_format_file_name,
     op_apply_source_map,

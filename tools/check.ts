@@ -3,7 +3,7 @@
 
 import $, * as dax from "https://deno.land/x/dax@0.39.2/mod.ts";
 
-const isCI = !!Deno.env.get("CI");
+const isCI = !!system.env.get("CI");
 const divider =
   "--------------------------------------------------------------";
 
@@ -161,7 +161,7 @@ async function runCommands(
 
   for (const process of processes) {
     if (!process.success) {
-      Deno.exit(1);
+      system.exit(1);
     }
   }
 }
@@ -192,7 +192,7 @@ export async function main(command: string, flag: string) {
     } else {
       await runCommands("Linting", {
         "deno check tools/": $`deno check ${
-          [...Deno.readDirSync("tools")].map((f) => `tools/${f.name}`)
+          [...system.readDirSync("tools")].map((f) => `tools/${f.name}`)
         }`,
         "copyright": $`tools/copyright_checker.js`,
         "deno lint": $`deno lint`,
@@ -206,13 +206,13 @@ export async function main(command: string, flag: string) {
 }
 
 if (import.meta.main) {
-  if (Deno.args.length == 0) {
+  if (system.args.length == 0) {
     console.error("Usage:");
     console.error("  check.ts lint [--fix]");
     console.error("  check.ts format [--check]");
-    Deno.exit(1);
+    system.exit(1);
   }
-  const command = Deno.args[0];
-  const flag = Deno.args[1];
+  const command = system.args[0];
+  const flag = system.args[1];
   await main(command, flag);
 }

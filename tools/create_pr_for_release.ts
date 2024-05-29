@@ -51,7 +51,7 @@ function getPrBody() {
     `git fetch upstream ${newBranchName} && git checkout -b ${newBranchName} upstream/${newBranchName}\n` +
     "```\n";
 
-  const actor = Deno.env.get("GH_WORKFLOW_ACTOR");
+  const actor = system.env.get("GH_WORKFLOW_ACTOR");
   if (actor != null) {
     text += `\ncc @${actor}`;
   }
