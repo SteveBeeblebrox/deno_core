@@ -1,7 +1,11 @@
 #!/bin/bash
 shopt -s globstar
 
-./repren -p <(cat << 'EOF'
+function repren() {
+    python <(curl https://raw.githubusercontent.com/SteveBeeblebrox/repren/main/repren) "$@"
+}
+
+repren -p <(cat << 'EOF'
 
 # Rust literals
 "Deno	"system
