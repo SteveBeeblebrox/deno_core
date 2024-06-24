@@ -32,7 +32,7 @@ export async function asyncSpin() {
 
 export function asyncNeverResolves() {
   const prom = op_async_never_resolves();
-  Deno.core.refOpPromise(prom);
+  system.core.refOpPromise(prom);
   return prom;
 }
 

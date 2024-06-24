@@ -136,7 +136,7 @@ system.core.print("redirect2");
 import "./redirect2.js";  // This import loads the module and registers the redirect alias
 import "./dir/redirect2.js";  // This import aborts load only after detecting it's an already loaded redirect
 import "./dir/redirect3.js";  // Tihs import is still in the queue, preventing RecursiveModuleLoad to transition to LoadState::Done
-Deno.core.print("concurrent_redirect");
+system.core.print("concurrent_redirect");
 "#;
 
   const MAIN_SRC: &str = r#"
