@@ -605,18 +605,25 @@ impl JsRuntime {
   }
 
   /// Only constructor, configuration is done through `options`.
-  pub fn new(mut options: RuntimeOptions) -> JsRuntime {
-    setup::init_v8(
-      options.v8_platform.take(),
-      cfg!(test),
-      options.unsafe_expose_natives_and_gc(),
-    );
-    match JsRuntime::new_inner(options, false) {
+  /// Panics if the runtime cannot be initialized.
+  pub fn new(options: RuntimeOptions) -> JsRuntime {
+    match Self::try_new(options) {
       Ok(runtime) => runtime,
       Err(err) => {
         panic!("Failed to initialize a JsRuntime: {:?}", err);
       }
     }
+  }
+
+  /// Only constructor, configuration is done through `options`.
+  /// Returns an error if the runtime cannot be initialized.
+  pub fn try_new(mut options: RuntimeOptions) -> Result<JsRuntime, Error> {
+    setup::init_v8(
+      options.v8_platform.take(),
+      cfg!(test),
+      options.unsafe_expose_natives_and_gc(),
+    );
+    JsRuntime::new_inner(options, false)
   }
 
   pub(crate) fn state_from(isolate: &v8::Isolate) -> Rc<JsRuntimeState> {
@@ -773,6 +780,7 @@ impl JsRuntime {
     // SAFETY: We attach external_refs to IsolateAllocations which will live as long as the isolate
     let external_refs_static = unsafe { std::mem::transmute(external_refs) };
 
+    let has_snapshot = maybe_startup_snapshot.is_some();
     let mut isolate = setup::create_isolate(
       will_snapshot,
       options.create_params.take(),
@@ -804,6 +812,7 @@ impl JsRuntime {
       isolate_ptr,
       options.get_error_class_fn.unwrap_or(&|_| "Error"),
       op_ctxs,
+      op_state.borrow().external_ops_tracker.clone(),
     ));
 
     // TODO(bartlomieju): factor out
@@ -828,6 +837,7 @@ impl JsRuntime {
         scope,
         &global_template_middleware,
         &global_object_middlewares,
+        has_snapshot,
       );
 
       // Get module map data from the snapshot
@@ -861,7 +871,13 @@ impl JsRuntime {
       );
     }
 
-    context.set_slot(scope, context_state.clone());
+    // SAFETY: Initialize the context state slot.
+    unsafe {
+      context.set_aligned_pointer_in_embedder_data(
+        super::jsrealm::CONTEXT_STATE_SLOT_INDEX,
+        Rc::into_raw(context_state.clone()) as *mut c_void,
+      );
+    }
 
     let inspector = if options.inspector {
       Some(JsRuntimeInspector::new(scope, context, options.is_main))
@@ -902,7 +918,13 @@ impl JsRuntime {
       }
     }
 
-    context.set_slot(scope, module_map.clone());
+    // SAFETY: Set the module map slot in the context
+    unsafe {
+      context.set_aligned_pointer_in_embedder_data(
+        super::jsrealm::MODULE_MAP_SLOT_INDEX,
+        Rc::into_raw(module_map.clone()) as *mut c_void,
+      );
+    }
 
     // ...we are ready to create a "realm" for the context...
     let main_realm = {
@@ -1802,6 +1824,7 @@ impl JsRuntime {
         || pending_state.has_pending_dyn_imports
         || pending_state.has_pending_dyn_module_evaluation
         || pending_state.has_pending_background_tasks
+        || pending_state.has_pending_external_ops
         || pending_state.has_tick_scheduled
       {
         // pass, will be polled again
@@ -1816,6 +1839,7 @@ impl JsRuntime {
       if pending_state.has_pending_ops
         || pending_state.has_pending_dyn_imports
         || pending_state.has_pending_background_tasks
+        || pending_state.has_pending_external_ops
         || pending_state.has_tick_scheduled
       {
         // pass, will be polled again
@@ -1860,13 +1884,23 @@ fn create_context<'a>(
   scope: &mut v8::HandleScope<'a, ()>,
   global_template_middlewares: &[GlobalTemplateMiddlewareFn],
   global_object_middlewares: &[GlobalObjectMiddlewareFn],
+  has_snapshot: bool,
 ) -> v8::Local<'a, v8::Context> {
-  // Set up the global object template and create context from it.
-  let mut global_object_template = v8::ObjectTemplate::new(scope);
-  for middleware in global_template_middlewares {
-    global_object_template = middleware(scope, global_object_template);
-  }
-  let context = v8::Context::new_from_template(scope, global_object_template);
+  let context = if has_snapshot {
+    // Try to load the 1st index first, embedder may have used 0th for something else (like node:vm).
+    v8::Context::from_snapshot(scope, 1)
+      .unwrap_or_else(|| v8::Context::from_snapshot(scope, 0).unwrap())
+  } else {
+    // Set up the global object template and create context from it.
+    let mut global_object_template = v8::ObjectTemplate::new(scope);
+    for middleware in global_template_middlewares {
+      global_object_template = middleware(scope, global_object_template);
+    }
+
+    global_object_template.set_internal_field_count(2);
+    v8::Context::new_from_template(scope, global_object_template)
+  };
+
   let scope = &mut v8::ContextScope::new(scope, context);
 
   // Get the global wrapper object from the context, get the real inner
@@ -1884,20 +1918,28 @@ fn create_context<'a>(
 }
 
 impl JsRuntimeForSnapshot {
-  pub fn new(mut options: RuntimeOptions) -> JsRuntimeForSnapshot {
+  /// Create a new runtime, panicking if the process fails.
+  pub fn new(options: RuntimeOptions) -> JsRuntimeForSnapshot {
+    match Self::try_new(options) {
+      Ok(runtime) => runtime,
+      Err(err) => {
+        panic!("Failed to initialize JsRuntime for snapshotting: {:?}", err);
+      }
+    }
+  }
+
+  /// Try to create a new runtime, returning an error if the process fails.
+  pub fn try_new(
+    mut options: RuntimeOptions,
+  ) -> Result<JsRuntimeForSnapshot, Error> {
     setup::init_v8(
       options.v8_platform.take(),
       true,
       options.unsafe_expose_natives_and_gc(),
     );
 
-    let runtime = match JsRuntime::new_inner(options, true) {
-      Ok(r) => r,
-      Err(err) => {
-        panic!("Failed to initialize JsRuntime for snapshotting: {:?}", err);
-      }
-    };
-    JsRuntimeForSnapshot(runtime)
+    let runtime = JsRuntime::new_inner(options, true)?;
+    Ok(JsRuntimeForSnapshot(runtime))
   }
 
   /// Takes a snapshot and consumes the runtime.
@@ -1919,8 +1961,11 @@ impl JsRuntimeForSnapshot {
     // Set the context to be snapshot's default context
     {
       let mut scope = realm.handle_scope(self.v8_isolate());
+      let default_context = v8::Context::new(&mut scope);
+      scope.set_default_context(default_context);
+
       let local_context = v8::Local::new(&mut scope, realm.context());
-      scope.set_default_context(local_context);
+      scope.add_context(local_context);
     }
 
     // Borrow the source maps during the snapshot to avoid copies
@@ -1996,6 +2041,7 @@ pub(crate) struct EventLoopPendingState {
   has_pending_background_tasks: bool,
   has_tick_scheduled: bool,
   has_pending_promise_events: bool,
+  has_pending_external_ops: bool,
 }
 
 impl EventLoopPendingState {
@@ -2038,6 +2084,7 @@ impl EventLoopPendingState {
       has_pending_background_tasks: scope.has_pending_background_tasks(),
       has_tick_scheduled: state.has_next_tick_scheduled.get(),
       has_pending_promise_events,
+      has_pending_external_ops: state.external_ops_tracker.has_pending_ops(),
     }
   }
 
@@ -2056,6 +2103,7 @@ impl EventLoopPendingState {
       || self.has_pending_background_tasks
       || self.has_tick_scheduled
       || self.has_pending_promise_events
+      || self.has_pending_external_ops
   }
 }
 

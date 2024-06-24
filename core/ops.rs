@@ -8,6 +8,7 @@ use crate::ops_metrics::OpMetricsFn;
 use crate::runtime::JsRuntimeState;
 use crate::runtime::OpDriverImpl;
 use crate::FeatureChecker;
+use crate::GcResource;
 use crate::OpDecl;
 use futures::task::AtomicWaker;
 use std::cell::RefCell;
@@ -16,6 +17,8 @@ use std::ops::Deref;
 use std::ops::DerefMut;
 use std::ptr::NonNull;
 use std::rc::Rc;
+use std::sync::atomic::AtomicUsize;
+use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use v8::fast_api::CFunctionInfo;
 use v8::fast_api::CTypeInfo;
@@ -53,6 +56,37 @@ pub fn reentrancy_check(decl: &'static OpDecl) -> Option<ReentrancyGuard> {
   }
   CURRENT_OP.with(|f| f.set(Some(decl)));
   Some(ReentrancyGuard {})
+}
+
+/// A guard for a [`cppgc::Gc`] object that ensures the object is rooted while the guard is alive.
+pub struct CppGcObjectGuard<T: GcResource + 'static> {
+  _global: v8::Global<v8::Value>,
+  t: &'static T,
+}
+
+impl<T: GcResource + 'static> CppGcObjectGuard<T> {
+  pub fn try_new_from_cppgc_object(
+    isolate: &mut Isolate,
+    val: v8::Local<v8::Value>,
+  ) -> Option<Self> {
+    crate::cppgc::try_unwrap_cppgc_object(val).map(|t| Self {
+      _global: v8::Global::new(isolate, val),
+      // SAFETY: `global` will keep T rooted. We never expose T to the user with
+      // a 'static lifetime. Only ever a reference to T tied to the lifetime of
+      // the `CppGcObjectGuard`.
+      t: unsafe { &*(t as *const T) },
+    })
+  }
+
+  /// Returns a reference to the inner T value.
+  ///
+  /// # Safety
+  ///
+  /// This is only safe if you have ensured that the `Isolate` that this object
+  /// is stored in, is still alive.
+  pub unsafe fn as_ref(&self) -> &T {
+    self.t
+  }
 }
 
 #[derive(Clone, Copy)]
@@ -250,12 +284,43 @@ impl OpCtx {
   }
 }
 
+/// Allows an embedder to track operations which should
+/// keep the event loop alive.
+#[derive(Debug, Clone)]
+pub struct ExternalOpsTracker {
+  counter: Arc<AtomicUsize>,
+}
+
+impl ExternalOpsTracker {
+  pub fn ref_op(&self) {
+    self.counter.fetch_add(1, Ordering::Relaxed);
+  }
+
+  pub fn unref_op(&self) {
+    let _ =
+      self
+        .counter
+        .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |x| {
+          if x == 0 {
+            None
+          } else {
+            Some(x - 1)
+          }
+        });
+  }
+
+  pub(crate) fn has_pending_ops(&self) -> bool {
+    self.counter.load(Ordering::Relaxed) > 0
+  }
+}
+
 /// Maintains the resources and ops inside a JS runtime.
 pub struct OpState {
   pub resource_table: ResourceTable,
   pub(crate) gotham_state: GothamState,
   pub waker: Arc<AtomicWaker>,
   pub feature_checker: Arc<FeatureChecker>,
+  pub external_ops_tracker: ExternalOpsTracker,
 }
 
 impl OpState {
@@ -265,6 +330,9 @@ impl OpState {
       gotham_state: Default::default(),
       waker: Arc::new(AtomicWaker::new()),
       feature_checker: maybe_feature_checker.unwrap_or_default(),
+      external_ops_tracker: ExternalOpsTracker {
+        counter: Arc::new(AtomicUsize::new(0)),
+      },
     }
   }
 
